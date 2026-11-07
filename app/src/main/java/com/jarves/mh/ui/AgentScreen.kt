@@ -780,7 +780,23 @@ fun AgentScreen(
                         }
                         Spacer(Modifier.width(10.dp))
                         Column {
-                            Text(stringResource(R.string.agent_screen_title), fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Juhi Agent", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                                Spacer(Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFF00F2FE).copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, Color(0xFF00F2FE).copy(alpha = 0.5f)),
+                                ) {
+                                    Text(
+                                        "VIP",
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00F2FE),
+                                    )
+                                }
+                            }
                             Text(
                                 if (isAntigravity) {
                                     "Antigravity · ${formatAntigravityModelName(state.antigravityModel)}"
@@ -830,6 +846,9 @@ fun AgentScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            item {
+                DeveloperContactCard(context = context)
+            }
             // ── 1. Compact 3-Way Segmented Engine Selector ──
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -2168,6 +2187,9 @@ private fun defaultModelsForProvider(kind: ProviderKind, context: android.conten
     )
     ProviderKind.OPENCODE_ZEN -> listOf(
         DiscoveredModel(ProviderKind.OPENCODE_ZEN.defaultModel, context.getString(R.string.md_model_opencode_default)),
+        DiscoveredModel("deepseek-chat", "DeepSeek-V3"),
+        DiscoveredModel("qwen2.5-coder-32b", "Qwen 2.5 Coder 32B"),
+        DiscoveredModel("claude-3-5-sonnet", "Claude 3.5 Sonnet"),
     )
     ProviderKind.NVIDIA_NIM -> listOf(
         DiscoveredModel(ProviderKind.NVIDIA_NIM.defaultModel, "Qwen 2.5 Coder 32B"),

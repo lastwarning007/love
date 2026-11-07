@@ -507,15 +507,35 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Settings, null, Modifier.size(20.dp), tint = PocketOrange)
+                        BrandMark(compact = true)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Mobile Harness", fontWeight = FontWeight.SemiBold)
-                            Text(stringResource(R.string.settings_app_desc), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Juhi Agent VIP", fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFF00F2FE).copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, Color(0xFF00F2FE).copy(alpha = 0.5f)),
+                                ) {
+                                    Text(
+                                        "VIP",
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00F2FE),
+                                    )
+                                }
+                            }
+                            Text("Advanced 3D AI Coding Assistant & Terminal", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text("v${BuildConfig.VERSION_NAME}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+                DeveloperContactCard(context = context)
+                Spacer(Modifier.height(8.dp))
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

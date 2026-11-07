@@ -34,8 +34,14 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.Orientation
@@ -308,11 +314,15 @@ fun PocketDevApp(viewModel: MainViewModel = viewModel()) {
         }
     }
     BackupRestartEffect()
+    var showVipLaunchScreen by rememberSaveable { mutableStateOf(true) }
     when {
-        state.startupStage == StartupStage.CHECKING -> StartupLoadingScreen(
-            state = state,
-            themeMode = state.themeMode,
-            onToggleTheme = viewModel::toggleTheme,
+        showVipLaunchScreen -> JuhiLaunchScreen(
+            onDismiss = { showVipLaunchScreen = false },
+            statusMessage = state.startupMessage.takeIf { it.isNotBlank() },
+        )
+        state.startupStage == StartupStage.CHECKING -> JuhiLaunchScreen(
+            onDismiss = { showVipLaunchScreen = false },
+            statusMessage = state.startupMessage.takeIf { it.isNotBlank() },
         )
         !state.initialLanguageSelected && (state.startupStage == StartupStage.SETUP_REQUIRED || !state.onboardingComplete) ->
             InitialLanguageSetupScreen(
@@ -348,10 +358,9 @@ fun PocketDevApp(viewModel: MainViewModel = viewModel()) {
                 onToggleTheme = viewModel::toggleTheme,
             )
         state.startupStage == StartupStage.INSTALLING || state.startupStage == StartupStage.INITIALIZING ->
-            StartupLoadingScreen(
-                state = state,
-                themeMode = state.themeMode,
-                onToggleTheme = viewModel::toggleTheme,
+            JuhiLaunchScreen(
+                onDismiss = { showVipLaunchScreen = false },
+                statusMessage = state.startupMessage.takeIf { it.isNotBlank() },
             )
         state.startupStage == StartupStage.ERROR -> StartupErrorScreen(
             message = state.startupError,
@@ -602,7 +611,7 @@ private fun InitialLanguageSetupScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BrandMark(compact = true)
                         Spacer(Modifier.width(9.dp))
-                        Text("Mobile Harness", fontWeight = FontWeight.Bold)
+                        Text("Juhi Agent", fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
@@ -894,7 +903,7 @@ private fun BackgroundTaskSetupScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BrandMark(compact = true)
                         Spacer(Modifier.width(9.dp))
-                        Text("Mobile Harness", fontWeight = FontWeight.Bold)
+                        Text("Juhi Agent", fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
@@ -1170,7 +1179,7 @@ private fun RuntimeSetupPromptScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BrandMark(compact = true)
                         Spacer(Modifier.width(9.dp))
-                        Text("Mobile Harness", fontWeight = FontWeight.Bold)
+                        Text("Juhi Agent", fontWeight = FontWeight.Bold)
                     }
                 },
                 navigationIcon = {
@@ -2389,7 +2398,7 @@ private fun StartupErrorScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BrandMark(compact = true)
                         Spacer(Modifier.width(9.dp))
-                        Text("Mobile Harness", fontWeight = FontWeight.Bold)
+                        Text("Juhi Agent", fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
@@ -3634,7 +3643,27 @@ private fun ProjectsScreen(
         topBar = {
             TopAppBar(
                 modifier = Modifier.padding(top = 8.dp),
-                title = { Row(verticalAlignment = Alignment.CenterVertically) { BrandMark(compact = true); Spacer(Modifier.width(9.dp)); Text("Mobile Harness", fontWeight = FontWeight.Bold) } },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BrandMark(compact = true)
+                        Spacer(Modifier.width(9.dp))
+                        Text("Juhi Agent", fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF00F2FE).copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, Color(0xFF00F2FE).copy(alpha = 0.5f)),
+                        ) {
+                            Text(
+                                "VIP",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF00F2FE),
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -3646,6 +3675,8 @@ private fun ProjectsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
+                DeveloperContactCard(context = context)
+                Spacer(Modifier.height(14.dp))
                 Text(stringResource(R.string.projects_hero_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.projects_hero_desc), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(16.dp))
@@ -7455,31 +7486,28 @@ private fun EmptyState(icon: ImageVector, title: String, body: String) {
 }
 
 @Composable
-private fun BrandMark(modifier: Modifier = Modifier, compact: Boolean = false) {
+internal fun BrandMark(modifier: Modifier = Modifier, compact: Boolean = false) {
     val size = if (compact) 32.dp else 50.dp
-    val iconSize = if (compact) 17.dp else 24.dp
     val cornerRadius = if (compact) 9.dp else 14.dp
-    val primary = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = modifier
             .size(size)
+            .shadow(if (compact) 4.dp else 8.dp, RoundedCornerShape(cornerRadius), spotColor = Color(0xFF00F2FE))
             .background(
-                color = primary.copy(alpha = 0.12f),
+                Brush.linearGradient(listOf(Color(0xFF00F2FE), Color(0xFFB5179E))),
                 shape = RoundedCornerShape(cornerRadius),
             )
-            .border(
-                width = 1.dp,
-                color = primary.copy(alpha = 0.32f),
-                shape = RoundedCornerShape(cornerRadius),
-            ),
+            .padding(1.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Default.Terminal,
-            contentDescription = "Mobile Harness",
-            modifier = Modifier.size(iconSize),
-            tint = primary,
+        Image(
+            painter = painterResource(id = R.drawable.img_juhi_icon),
+            contentDescription = "Juhi Agent VIP",
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(cornerRadius - 1.dp)),
+            contentScale = ContentScale.Crop,
         )
     }
 }

@@ -37,39 +37,26 @@ val prepareBundledAgentAssets = tasks.register<Sync>("prepareBundledAgentAssets"
     into(generatedRuntimeAssets.map { it.dir("shared/runtime") })
 }
 
-val prepareOfflineRuntimeAssets = tasks.register<Sync>("prepareOfflineRuntimeAssets") {
-    from(
-        runtimeBundleDir.file("pocketdev-core-arm64-2026.09.5.tar.zst"),
-        runtimeBundleDir.file("pocketdev-claude-arm64-2026.11.1.tar.zst"),
-        runtimeBundleDir.file("pocketdev-python-arm64-2026.09.2.tar.zst"),
-        runtimeBundleDir.file("pocketdev-android-arm64-2026.09.1.tar.zst"),
-        runtimeBundleDir.file("pocketdev-dsh-arm64-2026.09.1.tar.zst"),
-    )
-    into(generatedRuntimeAssets.map { it.dir("offline/runtime") })
-}
-
 fun buildConfigString(value: String): String =
     "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 android {
     namespace = "com.jarves.mh"
     compileSdk = 36
-    // NDK 28 emits flexible-page-size binaries for the static PRoot loader.
-    // NDK 26 accepted the max-page-size flag but still produced 4 KiB LOAD
-    // segments, which crash under 16 KiB Android runtimes. Builders may still
-    // override this explicitly with -PmhNdkVersion=<version>.
-    ndkVersion = providers.gradleProperty("mhNdkVersion").orNull ?: "28.2.13676358"
 
     signingConfigs {
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (hasUploadSigning) {
             create("upload") {
                 storeFile = rootProject.file(checkNotNull(uploadStorePath))
                 storePassword = checkNotNull(uploadStorePassword)
                 keyAlias = checkNotNull(uploadKeyAlias)
                 keyPassword = checkNotNull(uploadKeyPassword)
-                // AGP drops the legacy JAR signature for minSdk >= 24, but some
-                // OEM installers (vivo) reject APKs without it as "missing the
-                // developer certificate". Keep both; the key is unchanged.
                 enableV1Signing = true
                 enableV2Signing = true
             }
@@ -77,25 +64,23 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.jarves.mh"
+        applicationId = "com.juhiagent.vipp"
         minSdk = 28
-        // The direct APK retains the proven target-28 PRoot execution path. The
-        // Play build targets current Android while its runtime path is validated.
         targetSdk = if (playBuild) 36 else 28
-        // Keep literal defaults so F-Droid's static manifest parser can detect
-        // the tagged release. Gradle properties may still override Play builds.
         versionCode = 11
         versionName = "1.0.10"
         providers.gradleProperty("appVersionCode").orNull?.toIntOrNull()?.let { versionCode = it }
         providers.gradleProperty("appVersionName").orNull?.let { versionName = it }
-
-        ndk.abiFilters += "arm64-v8a"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
         buildConfigField("boolean", "IS_PLAY_BUILD", playBuild.toString())
         buildConfigField("String", "PRIVACY_POLICY_URL", buildConfigString(privacyPolicyUrl))
+        buildConfigField("boolean", "OFFLINE_RUNTIME_BUNDLES", "false")
+        buildConfigField("String", "RUNTIME_RELEASE_BASE_URL", buildConfigString(runtimeReleaseBaseUrl))
+        buildConfigField("String", "APP_UPDATE_MANIFEST_URL", buildConfigString(appUpdateManifestUrl))
+        buildConfigField("String", "APP_VARIANT", "\"online\"")
 
         buildConfigField(
             "String",
@@ -104,29 +89,11 @@ android {
         )
     }
 
-    flavorDimensions += "runtimeDelivery"
-    productFlavors {
-        create("online") {
-            dimension = "runtimeDelivery"
-            buildConfigField("boolean", "OFFLINE_RUNTIME_BUNDLES", "false")
-            buildConfigField("String", "RUNTIME_RELEASE_BASE_URL", buildConfigString(runtimeReleaseBaseUrl))
-            buildConfigField("String", "APP_UPDATE_MANIFEST_URL", buildConfigString(appUpdateManifestUrl))
-            buildConfigField("String", "APP_VARIANT", "\"online\"")
-        }
-        create("offline") {
-            dimension = "runtimeDelivery"
-            buildConfigField("boolean", "OFFLINE_RUNTIME_BUNDLES", "true")
-            buildConfigField("String", "RUNTIME_RELEASE_BASE_URL", buildConfigString(runtimeReleaseBaseUrl))
-            buildConfigField("String", "APP_UPDATE_MANIFEST_URL", buildConfigString(appUpdateManifestUrl))
-            buildConfigField("String", "APP_VARIANT", "\"offline\"")
-        }
-    }
-
-    sourceSets.getByName("offline").assets.srcDir(generatedRuntimeAssets.map { it.dir("offline") })
     sourceSets.getByName("main").assets.srcDir(generatedRuntimeAssets.map { it.dir("shared") })
 
     buildTypes {
         debug {
+            signingConfig = signingConfigs.getByName("debugConfig")
             buildConfigField(
                 "String",
                 "TEST_OPENROUTER_API_KEY",
@@ -154,28 +121,16 @@ android {
         compose = true
         buildConfig = true
     }
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
-    }
     packaging.resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     packaging.jniLibs.useLegacyPackaging = true
     androidResources.noCompress += "zst"
 }
-
-tasks.matching { it.name.startsWith("mergeOffline") && it.name.endsWith("Assets") }
-    .configureEach { dependsOn(prepareOfflineRuntimeAssets) }
 
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
     .configureEach { dependsOn(prepareBundledAgentAssets) }
 
 tasks.matching { it.name.contains("lint", ignoreCase = true) }
     .configureEach { dependsOn(prepareBundledAgentAssets) }
-
-tasks.matching { it.name.contains("Offline") && it.name.contains("lint", ignoreCase = true) }
-    .configureEach { dependsOn(prepareOfflineRuntimeAssets) }
 
 tasks.register("playReadinessCheck") {
     group = "verification"

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MobileHarness"
+rootProject.name = "Juhi Agent"
 include(":app")

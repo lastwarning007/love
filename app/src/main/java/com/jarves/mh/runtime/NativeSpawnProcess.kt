@@ -8,19 +8,21 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 
-internal class NativeSpawnProcess private constructor(
+internal class NativeSpawnProcess internal constructor(
     private val pid: Int,
     internal val outputFile: File,
     private val stdin: OutputStream,
     private val outputPump: Thread? = null,
+    private val fallbackProcess: Process? = null,
 ) : Process() {
     @Volatile private var result: Int? = null
 
     override fun getOutputStream(): OutputStream = stdin
-    override fun getInputStream(): InputStream = FileInputStream(outputFile)
+    override fun getInputStream(): InputStream = runCatching { FileInputStream(outputFile) }.getOrElse { ByteArrayInputStream(ByteArray(0)) }
     override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
 
     override fun waitFor(): Int {
+        fallbackProcess?.let { return it.waitFor().also { code -> result = code } }
         result?.let { return it }
         return NativeSpawn.waitFor(pid, false).also {
             result = it
@@ -29,6 +31,7 @@ internal class NativeSpawnProcess private constructor(
     }
 
     override fun exitValue(): Int {
+        fallbackProcess?.let { return it.exitValue().also { code -> result = code } }
         result?.let { return it }
         val status = NativeSpawn.waitFor(pid, true)
         if (status == NativeSpawn.STILL_RUNNING) throw IllegalThreadStateException("Process is still running")
@@ -36,20 +39,20 @@ internal class NativeSpawnProcess private constructor(
     }
 
     override fun destroy() {
-        NativeSpawn.kill(pid, 15)
+        fallbackProcess?.destroy() ?: runCatching { NativeSpawn.kill(pid, 15) }
     }
 
     /** Send the same interrupt signal produced by Ctrl+C in a real terminal. */
     internal fun interrupt() {
-        NativeSpawn.kill(pid, 2)
+        fallbackProcess?.destroy() ?: runCatching { NativeSpawn.kill(pid, 2) }
     }
 
     override fun destroyForcibly(): Process {
-        NativeSpawn.kill(pid, 9)
+        fallbackProcess?.destroyForcibly() ?: runCatching { NativeSpawn.kill(pid, 9) }
         return this
     }
 
-    override fun isAlive(): Boolean = runCatching { exitValue(); false }.getOrDefault(true)
+    override fun isAlive(): Boolean = fallbackProcess?.isAlive ?: runCatching { exitValue(); false }.getOrDefault(true)
 
     companion object {
         fun start(
@@ -63,30 +66,50 @@ internal class NativeSpawnProcess private constructor(
         ): NativeSpawnProcess {
             outputFile.parentFile?.mkdirs()
             if (pseudoTerminal) outputFile.delete()
-            val spawned = NativeSpawn.spawn(
-                argv.toTypedArray(),
-                environment.map { "${it.key}=${it.value}" }.toTypedArray(),
-                cwd,
-                outputFile.absolutePath,
-                pseudoTerminal,
-                ptyRows,
-                ptyColumns,
-            )
-            check(spawned.size == 3 && spawned[0] > 0) { "Native runtime launch failed" }
-            val input = ParcelFileDescriptor.AutoCloseOutputStream(ParcelFileDescriptor.adoptFd(spawned[1]))
-            val pump = spawned[2].takeIf { it >= 0 }?.let { outputFd ->
-                Thread({
-                    runCatching {
-                        ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.adoptFd(outputFd)).use { source ->
-                            FileOutputStream(outputFile, false).use { destination -> source.copyTo(destination) }
+
+            if (NativeSpawn.isAvailable) {
+                val spawned = NativeSpawn.spawn(
+                    argv.toTypedArray(),
+                    environment.map { "${it.key}=${it.value}" }.toTypedArray(),
+                    cwd,
+                    outputFile.absolutePath,
+                    pseudoTerminal,
+                    ptyRows,
+                    ptyColumns,
+                )
+                check(spawned.size == 3 && spawned[0] > 0) { "Native runtime launch failed" }
+                val input = ParcelFileDescriptor.AutoCloseOutputStream(ParcelFileDescriptor.adoptFd(spawned[1]))
+                val pump = spawned[2].takeIf { it >= 0 }?.let { outputFd ->
+                    Thread({
+                        runCatching {
+                            ParcelFileDescriptor.AutoCloseInputStream(ParcelFileDescriptor.adoptFd(outputFd)).use { source ->
+                                FileOutputStream(outputFile, false).use { destination -> source.copyTo(destination) }
+                            }
                         }
+                    }, "pocket-pty-output").apply {
+                        isDaemon = true
+                        start()
                     }
-                }, "pocket-pty-output").apply {
-                    isDaemon = true
-                    start()
                 }
+                return NativeSpawnProcess(spawned[0], outputFile, input, pump)
+            } else {
+                val pb = ProcessBuilder(argv)
+                pb.environment().putAll(environment)
+                val dir = File(cwd)
+                if (dir.isDirectory) {
+                    pb.directory(dir)
+                }
+                pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFile))
+                pb.redirectError(ProcessBuilder.Redirect.appendTo(outputFile))
+                val proc = pb.start()
+                return NativeSpawnProcess(
+                    pid = -1,
+                    outputFile = outputFile,
+                    stdin = proc.outputStream,
+                    outputPump = null,
+                    fallbackProcess = proc,
+                )
             }
-            return NativeSpawnProcess(spawned[0], outputFile, input, pump)
         }
     }
 }
@@ -94,8 +117,11 @@ internal class NativeSpawnProcess private constructor(
 private object NativeSpawn {
     const val STILL_RUNNING = -2
 
-    init {
+    val isAvailable: Boolean = try {
         System.loadLibrary("pocketspawn")
+        true
+    } catch (_: Throwable) {
+        false
     }
 
     external fun spawn(
@@ -107,6 +133,7 @@ private object NativeSpawn {
         ptyRows: Int,
         ptyColumns: Int,
     ): IntArray
+
     external fun waitFor(pid: Int, noHang: Boolean): Int
     external fun kill(pid: Int, signal: Int): Int
 }
