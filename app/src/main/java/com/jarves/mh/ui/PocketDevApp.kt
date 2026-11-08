@@ -7249,7 +7249,7 @@ private fun ChangesTab(
                     if (expanded) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Column(
-                            Modifier.fillMaxWidth().background(Color(0xFF0B0E14)).horizontalScroll(rememberScrollState()),
+                            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).horizontalScroll(rememberScrollState()),
                         ) {
                             change.diffLines.forEach { line -> DiffLineRow(line) }
                         }

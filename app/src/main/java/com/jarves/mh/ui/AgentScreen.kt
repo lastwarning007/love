@@ -1467,7 +1467,7 @@ private fun AgentAntigravityCard(
                                             },
                                             fontSize = 12.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSelected) Color(0xFF241107) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            color = if (isSelected) Color(0xFF090D16) else MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }

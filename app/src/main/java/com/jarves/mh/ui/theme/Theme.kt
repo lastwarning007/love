@@ -11,50 +11,65 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-val PocketOrange = Color(0xFFF28C52)
-val PocketBlue = Color(0xFF8EA8FF)
-val PocketGreen = Color(0xFF69D69E)
-val PocketBackground = Color(0xFF0B0E14)
-val PocketSurface = Color(0xFF131821)
-val PocketSurfaceVariant = Color(0xFF1B222D)
-val PocketOutline = Color(0xFF2A3240)
+// Professional High-Tech Cyber & Modern Palette (Replacing old black & orange)
+val CyberElectricCyan = Color(0xFF00E5FF)
+val CyberIndigo = Color(0xFF6366F1)
+val CyberSkyBlue = Color(0xFF38BDF8)
+val CyberEmerald = Color(0xFF10B981)
+val CyberNavyDark = Color(0xFF090D16)
+val CyberSlateSurface = Color(0xFF0F172A)
+val CyberSurfaceVariant = Color(0xFF1E293B)
+val CyberBorderOutline = Color(0xFF334155)
+
+// Kept for seamless symbol compatibility across all screens
+val PocketOrange = CyberElectricCyan
+val PocketBlue = CyberSkyBlue
+val PocketGreen = CyberEmerald
+val PocketBackground = CyberNavyDark
+val PocketSurface = CyberSlateSurface
+val PocketSurfaceVariant = CyberSurfaceVariant
+val PocketOutline = CyberBorderOutline
 
 private val DarkColors = darkColorScheme(
-    primary = PocketOrange,
-    onPrimary = Color(0xFF241107),
-    primaryContainer = Color(0xFF42281D),
-    onPrimaryContainer = Color(0xFFFFDDCC),
-    secondary = PocketBlue,
-    onSecondary = Color(0xFF001F58),
-    tertiary = PocketGreen,
-    onTertiary = Color(0xFF00391E),
-    background = PocketBackground,
-    onBackground = Color(0xFFE6EDF3),
-    surface = PocketSurface,
-    onSurface = Color(0xFFE6EDF3),
-    surfaceVariant = PocketSurfaceVariant,
-    onSurfaceVariant = Color(0xFF9AA0A6),
-    outline = PocketOutline,
-    outlineVariant = Color(0xFF333B4A),
+    primary = CyberElectricCyan,
+    onPrimary = Color(0xFF002026),
+    primaryContainer = Color(0xFF004D5A),
+    onPrimaryContainer = Color(0xFFB8F5FF),
+    secondary = CyberIndigo,
+    onSecondary = Color(0xFF1E1B4B),
+    secondaryContainer = Color(0xFF312E81),
+    onSecondaryContainer = Color(0xFFE0E7FF),
+    tertiary = CyberSkyBlue,
+    onTertiary = Color(0xFF082F49),
+    background = CyberNavyDark,
+    onBackground = Color(0xFFF1F5F9),
+    surface = CyberSlateSurface,
+    onSurface = Color(0xFFF1F5F9),
+    surfaceVariant = CyberSurfaceVariant,
+    onSurfaceVariant = Color(0xFF94A3B8),
+    outline = CyberBorderOutline,
+    outlineVariant = Color(0xFF1E293B),
 )
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFFD85A20),
+    primary = Color(0xFF0284C7),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFFFE0D2),
-    onPrimaryContainer = Color(0xFF451A08),
-    secondary = Color(0xFF3366CC),
+    primaryContainer = Color(0xFFE0F2FE),
+    onPrimaryContainer = Color(0xFF0369A1),
+    secondary = Color(0xFF4F46E5),
     onSecondary = Color(0xFFFFFFFF),
-    tertiary = Color(0xFF1B8A5A),
+    secondaryContainer = Color(0xFFEEF2FF),
+    onSecondaryContainer = Color(0xFF3730A3),
+    tertiary = Color(0xFF0D9488),
     onTertiary = Color(0xFFFFFFFF),
-    background = Color(0xFFF6F8FA),
-    onBackground = Color(0xFF1F2328),
+    background = Color(0xFFF8FAFC),
+    onBackground = Color(0xFF0F172A),
     surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF1F2328),
-    surfaceVariant = Color(0xFFEAEFF5),
-    onSurfaceVariant = Color(0xFF57606A),
-    outline = Color(0xFFD0D7DE),
-    outlineVariant = Color(0xFFD8DEE4),
+    onSurface = Color(0xFF0F172A),
+    surfaceVariant = Color(0xFFF1F5F9),
+    onSurfaceVariant = Color(0xFF64748B),
+    outline = Color(0xFFCBD5E1),
+    outlineVariant = Color(0xFFE2E8F0),
 )
 
 enum class AppThemeMode { SYSTEM, DARK, LIGHT }
